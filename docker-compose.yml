@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    command: python app.py
+    ports:
+      - "80:80"
+    volumes:
+      - .:/app
+      - ./uploads:/app/uploads
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/face_recognition_db
+    restart: always
+
+  mongo:
+    image: mongo:5.0
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=face_recognition_db
+    restart: always
+
+  mongo-express:
+    image: mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_BASICAUTH_USERNAME=admin
+      - ME_CONFIG_BASICAUTH_PASSWORD=pass
+    depends_on:
+      - mongo
+    restart: always
+
+volumes:
+  mongo_data:

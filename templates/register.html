@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Inscription - Login Biométrique{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-plus fa-3x text-white mb-3"></i>
+                    <h2 class="text-white">Inscription</h2>
+                    <p class="text-white-50">Créez votre compte avec reconnaissance faciale</p>
+                </div>
+                
+                <form id="registerForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="username" class="form-label text-white">
+                            <i class="fas fa-user me-2"></i>Nom d'utilisateur
+                        </label>
+                        <input type="text" class="form-control" id="username" name="username" 
+                               placeholder="Votre nom d'utilisateur" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="email" class="form-label text-white">
+                            <i class="fas fa-envelope me-2"></i>Email
+                        </label>
+                        <input type="email" class="form-control" id="email" name="email" 
+                               placeholder="votre@email.com" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="photo" class="form-label text-white">
+                            <i class="fas fa-camera me-2"></i>Photo de profil
+                        </label>
+                        <input type="file" class="form-control" id="photo" name="photo" 
+                               accept="image/*" required>
+                        <div class="form-text text-white-50">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Prenez une photo claire de votre visage, bien éclairée
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg" id="registerBtn">
+                            <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                            <i class="fas fa-user-plus me-2"></i>
+                            S'inscrire
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="text-center mt-4">
+                    <p class="text-white-50">
+                        Déjà inscrit ? 
+                        <a href="/login" class="text-white">Se connecter</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-4">
+                <h5 class="text-white text-center mb-3">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    Conseils pour une bonne photo
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-sun fa-2x text-warning mb-2"></i>
+                        <h6 class="text-white">Bon éclairage</h6>
+                        <p class="text-white-50 small">Utilisez un éclairage naturel ou artificiel uniforme</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-eye fa-2x text-info mb-2"></i>
+                        <h6 class="text-white">Regardez la caméra</h6>
+                        <p class="text-white-50 small">Fixez directement l'objectif de la caméra</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-smile fa-2x text-success mb-2"></i>
+                        <h6 class="text-white">Expression neutre</h6>
+                        <p class="text-white-50 small">Gardez une expression naturelle et détendue</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-crop fa-2x text-primary mb-2"></i>
+                        <h6 class="text-white">Cadrage correct</h6>
+                        <p class="text-white-50 small">Visage entier visible, pas trop près ni trop loin</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('registerForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const username = formData.get('username');
+    const email = formData.get('email');
+    const photo = formData.get('photo');
+    
+    // Validation côté client
+    if (!username || !email || !photo) {
+        showMessage('Veuillez remplir tous les champs', 'warning');
+        return;
+    }
+    
+    if (photo.size > 16 * 1024 * 1024) { // 16MB
+        showMessage('La photo est trop volumineuse (max 16MB)', 'warning');
+        return;
+    }
+    
+    toggleLoading(true, 'registerBtn');
+    
+    try {
+        const response = await fetch('/api/register', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showMessage(result.message, 'success');
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 2000);
+        } else {
+            showMessage(result.message, 'danger');
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showMessage('Erreur de connexion au serveur', 'danger');
+    } finally {
+        toggleLoading(false, 'registerBtn');
+    }
+});
+
+// Prévisualisation de l'image
+document.getElementById('photo').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Créer un aperçu de l'image si nécessaire
+            let preview = document.getElementById('imagePreview');
+            if (!preview) {
+                preview = document.createElement('div');
+                preview.id = 'imagePreview';
+                preview.className = 'mt-3 text-center';
+                e.target.parentNode.appendChild(preview);
+            }
+            
+            preview.innerHTML = `
+                <img src="${e.target.result}" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                <p class="text-white-50 small mt-2">Aperçu de votre photo</p>
+            `;
+        };
+        reader.readAsDataURL(file);
+    }
+});
+</script>
+{% endblock %}

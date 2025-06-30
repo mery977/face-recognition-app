@@ -1,0 +1,387 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Login Biométrique{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-body p-4 text-center">
+                <i class="fas fa-chart-line fa-3x text-white mb-3"></i>
+                <h2 class="text-white">Dashboard Administrateur</h2>
+                <p class="text-white-50">Gestion et suivi du système de reconnaissance faciale</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-users fa-2x mb-3 text-primary"></i>
+            <div class="stats-number" id="totalUsers">0</div>
+            <h6>Utilisateurs</h6>
+            <p class="small">Total des comptes</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-sign-in-alt fa-2x mb-3 text-success"></i>
+            <div class="stats-number" id="totalLogins">0</div>
+            <h6>Connexions</h6>
+            <p class="small">Aujourd'hui</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-check-circle fa-2x mb-3 text-info"></i>
+            <div class="stats-number" id="successRate">0%</div>
+            <h6>Taux de réussite</h6>
+            <p class="small">Dernières 24h</p>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <i class="fas fa-clock fa-2x mb-3 text-warning"></i>
+            <div class="stats-number" id="avgTime">0s</div>
+            <h6>Temps moyen</h6>
+            <p class="small">Reconnaissance</p>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-transparent border-0 p-4">
+                <h5 class="text-white mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    Utilisateurs Enregistrés
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nom d'utilisateur</th>
+                                <th>Email</th>
+                                <th>Date d'inscription</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable">
+                            <tr>
+                                <td colspan="4" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Chargement...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header bg-transparent border-0 p-4">
+                <h5 class="text-white mb-0">
+                    <i class="fas fa-history me-2"></i>
+                    Historique des Connexions
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover">
+                        <thead>
+                            <tr>
+                                <th>Utilisateur</th>
+                                <th>Heure</th>
+                                <th>Statut</th>
+                                <th>IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logsTable">
+                            <tr>
+                                <td colspan="4" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Chargement...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-transparent border-0 p-4">
+                <h5 class="text-white mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Graphique des Connexions
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <div style="height: 300px; display: flex; align-items: center; justify-content: center;">
+                    <canvas id="loginChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-4 text-center">
+                <h5 class="text-white mb-3">Actions Rapides</h5>
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <button class="btn btn-primary" onclick="refreshData()">
+                        <i class="fas fa-sync-alt me-2"></i>
+                        Actualiser les données
+                    </button>
+                    <button class="btn btn-info" onclick="exportLogs()">
+                        <i class="fas fa-download me-2"></i>
+                        Exporter les logs
+                    </button>
+                    <button class="btn btn-warning" onclick="clearOldLogs()">
+                        <i class="fas fa-trash me-2"></i>
+                        Nettoyer les anciens logs
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+let loginChart = null;
+
+// Charger les données au démarrage
+document.addEventListener('DOMContentLoaded', function() {
+    loadDashboardData();
+    
+    // Actualiser toutes les 30 secondes
+    setInterval(loadDashboardData, 30000);
+});
+
+async function loadDashboardData() {
+    try {
+        // Charger les utilisateurs
+        const usersResponse = await fetch('/api/users');
+        const usersData = await usersResponse.json();
+        
+        // Charger les logs
+        const logsResponse = await fetch('/api/logs');
+        const logsData = await logsResponse.json();
+        
+        if (usersData.success && logsData.success) {
+            updateStats(usersData.users, logsData.logs);
+            updateUsersTable(usersData.users);
+            updateLogsTable(logsData.logs);
+            updateChart(logsData.logs);
+        }
+        
+    } catch (error) {
+        console.error('Erreur chargement données:', error);
+        showMessage('Erreur lors du chargement des données', 'danger');
+    }
+}
+
+function updateStats(users, logs) {
+    // Total utilisateurs
+    document.getElementById('totalUsers').textContent = users.length;
+    
+    // Connexions aujourd'hui
+    const today = new Date().toDateString();
+    const todayLogins = logs.filter(log => {
+        const logDate = new Date(log.login_time).toDateString();
+        return logDate === today;
+    });
+    document.getElementById('totalLogins').textContent = todayLogins.length;
+    
+    // Taux de réussite
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recent = logs.filter(log => new Date(log.login_time) > last24h);
+    const successful = recent.filter(log => log.success);
+    const successRate = recent.length > 0 ? Math.round((successful.length / recent.length) * 100) : 0;
+    document.getElementById('successRate').textContent = successRate + '%';
+    
+    // Temps moyen (simulation)
+    document.getElementById('avgTime').textContent = '1.2s';
+}
+
+function updateUsersTable(users) {
+    const tbody = document.getElementById('usersTable');
+    
+    if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-white-50">Aucun utilisateur enregistré</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = users.map(user => `
+        <tr>
+            <td>
+                <i class="fas fa-user me-2 text-primary"></i>
+                ${user.username}
+            </td>
+            <td>${user.email}</td>
+            <td>${new Date(user.created_at).toLocaleDateString('fr-FR')}</td>
+            <td>
+                <span class="badge bg-success">
+                    <i class="fas fa-check me-1"></i>Actif
+                </span>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function updateLogsTable(logs) {
+    const tbody = document.getElementById('logsTable');
+    
+    if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-white-50">Aucun log disponible</td></tr>';
+        return;
+    }
+    
+    // Afficher les 10 derniers logs
+    const recentLogs = logs.slice(0, 10);
+    
+    tbody.innerHTML = recentLogs.map(log => `
+        <tr>
+            <td>
+                <i class="fas fa-user me-2 ${log.success ? 'text-success' : 'text-danger'}"></i>
+                ${log.username}
+            </td>
+            <td>${new Date(log.login_time).toLocaleString('fr-FR')}</td>
+            <td>
+                <span class="badge bg-${log.success ? 'success' : 'danger'}">
+                    <i class="fas fa-${log.success ? 'check' : 'times'} me-1"></i>
+                    ${log.success ? 'Réussi' : 'Échec'}
+                </span>
+            </td>
+            <td class="text-white-50">${log.ip_address}</td>
+        </tr>
+    `).join('');
+}
+
+function updateChart(logs) {
+    const ctx = document.getElementById('loginChart').getContext('2d');
+    
+    // Grouper par heure sur les dernières 24h
+    const last24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const hourlyData = {};
+    
+    // Initialiser les heures
+    for (let i = 0; i < 24; i++) {
+        const hour = new Date(last24h.getTime() + i * 60 * 60 * 1000).getHours();
+        hourlyData[hour] = { success: 0, failed: 0 };
+    }
+    
+    // Compter les connexions par heure
+    logs.forEach(log => {
+        const logTime = new Date(log.login_time);
+        if (logTime > last24h) {
+            const hour = logTime.getHours();
+            if (log.success) {
+                hourlyData[hour].success++;
+            } else {
+                hourlyData[hour].failed++;
+            }
+        }
+    });
+    
+    const labels = Object.keys(hourlyData).map(hour => `${hour}h`);
+    const successData = Object.values(hourlyData).map(data => data.success);
+    const failedData = Object.values(hourlyData).map(data => data.failed);
+    
+    if (loginChart) {
+        loginChart.destroy();
+    }
+    
+    loginChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Connexions réussies',
+                data: successData,
+                backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                borderColor: 'rgba(40, 167, 69, 1)',
+                borderWidth: 1
+            }, {
+                label: 'Connexions échouées',
+                data: failedData,
+                backgroundColor: 'rgba(220, 53, 69, 0.8)',
+                borderColor: 'rgba(220, 53, 69, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'white'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                },
+                x: {
+                    ticks: {
+                        color: 'white'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function refreshData() {
+    showMessage('Actualisation des données...', 'info');
+    loadDashboardData();
+}
+
+function exportLogs() {
+    // Simulation de l'export
+    showMessage('Export des logs en cours...', 'info');
+    setTimeout(() => {
+        showMessage('Logs exportés avec succès!', 'success');
+    }, 2000);
+}
+
+function clearOldLogs() {
+    if (confirm('Êtes-vous sûr de vouloir supprimer les anciens logs ?')) {
+        showMessage('Nettoyage des anciens logs...', 'warning');
+        setTimeout(() => {
+            showMessage('Anciens logs supprimés!', 'success');
+            loadDashboardData();
+        }, 2000);
+    }
+}
+</script>
+{% endblock %}

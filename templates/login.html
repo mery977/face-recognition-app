@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - Login Biométrique{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <i class="fas fa-face-smile fa-3x text-white mb-3"></i>
+                    <h2 class="text-white">Connexion Biométrique</h2>
+                    <p class="text-white-50">Positionnez votre visage devant la caméra</p>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-8 mx-auto">
+                        <div class="video-container mb-4">
+                            <video id="video" autoplay muted playsinline></video>
+                            <canvas id="canvas" style="display: none;"></canvas>
+                            <div class="capture-overlay" id="captureOverlay">
+                                <div class="face-outline"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button type="button" class="btn btn-primary btn-lg me-3" id="startCamera">
+                                <i class="fas fa-camera me-2"></i>
+                                Démarrer la caméra
+                            </button>
+                            <button type="button" class="btn btn-success btn-lg" id="captureBtn" style="display: none;">
+                                <span class="loading-spinner spinner-border spinner-border-sm me-2"></span>
+                                <i class="fas fa-camera-retro me-2"></i>
+                                Se connecter
+                            </button>
+                        </div>
+                        
+                        <div class="mt-4 text-center">
+                            <div class="alert alert-info" id="statusMessage" style="display: none;">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <span id="statusText">Prêt pour la capture</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center mt-4">
+                    <p class="text-white-50">
+                        Pas encore inscrit ? 
+                        <a href="/register" class="text-white">Créer un compte</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-4">
+                <h5 class="text-white text-center mb-3">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Instructions de connexion
+                </h5>
+                <div class="row g-3">
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-video fa-2x text-primary mb-2"></i>
+                        <h6 class="text-white">Étape 1</h6>
+                        <p class="text-white-50 small">Cliquez sur "Démarrer la caméra" et autorisez l'accès</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-user-circle fa-2x text-primary mb-2"></i>
+                        <h6 class="text-white">Étape 2</h6>
+                        <p class="text-white-50 small">Positionnez votre visage dans le cadre</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-search fa-2x text-primary mb-2"></i>
+                        <h6 class="text-white">Étape 3</h6>
+                        <p class="text-white-50 small">Cliquez sur "Se connecter" pour l'analyse</p>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                        <h6 class="text-white">Étape 4</h6>
+                        <p class="text-white-50 small">Connexion automatique si reconnaissance réussie</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let video = document.getElementById('video');
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+let stream = null;
+
+document.getElementById('startCamera').addEventListener('click', async function() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                width: { ideal: 640 }, 
+                height: { ideal: 480 },
+                facingMode: 'user'
+            } 
+        });
+        
+        video.srcObject = stream;
+        video.play();
+        
+        this.style.display = 'none';
+        document.getElementById('captureBtn').style.display = 'inline-block';
+        
+        showStatus('Caméra activée - Positionnez votre visage', 'info');
+        
+        // Animation du contour de visage
+        document.getElementById('captureOverlay').classList.add('show');
+        
+    } catch (error) {
+        console.error('Erreur accès caméra:', error);
+        showMessage('Impossible d\'accéder à la caméra. Vérifiez les permissions.', 'danger');
+    }
+});
+
+document.getElementById('captureBtn').addEventListener('click', async function() {
+    if (!stream) {
+        showMessage('Veuillez d\'abord démarrer la caméra', 'warning');
+        return;
+    }
+    
+    toggleLoading(true, 'captureBtn');
+    showStatus('Analyse en cours...', 'warning');
+    
+    // Capturer l'image
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0);
+    
+    // Convertir en base64
+    const imageData = canvas.toDataURL('image/jpeg', 0.8);
+    
+    try {
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                image: imageData
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showStatus('Connexion réussie !', 'success');
+            showMessage(`Bienvenue ${result.user.username} !`, 'success');
+            
+            // Arrêter la caméra
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            
+            // Rediriger vers le dashboard
+            setTimeout(() => {
+                window.location.href = '/dashboard';
+            }, 2000);
+            
+        } else {
+            showStatus('Reconnaissance échouée', 'danger');
+            showMessage(result.message, 'danger');
+        }
+        
+    } catch (error) {
+        console.error('Erreur:', error);
+        showMessage('Erreur de connexion au serveur', 'danger');
+        showStatus('Erreur de connexion', 'danger');
+    } finally {
+        toggleLoading(false, 'captureBtn');
+        
+        // Masquer l'overlay après un délai
+        setTimeout(() => {
+            document.getElementById('captureOverlay').classList.remove('show');
+        }, 2000);
+    }
+});
+
+function showStatus(message, type) {
+    const statusDiv = document.getElementById('statusMessage');
+    const statusText = document.getElementById('statusText');
+    
+    statusDiv.className = `alert alert-${type}`;
+    statusText.textContent = message;
+    statusDiv.style.display = 'block';
+}
+
+// Nettoyage à la fermeture de la page
+window.addEventListener('beforeunload', function() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+    }
+});
+
+// Auto-capture après 3 secondes (optionnel)
+let autoCapture = null;
+
+video.addEventListener('loadedmetadata', function() {
+    // Démarrer l'auto-capture après 5 secondes
+    autoCapture = setTimeout(() => {
+        if (document.getElementById('captureBtn').style.display !== 'none') {
+            showStatus('Auto-capture dans 3 secondes...', 'info');
+            setTimeout(() => {
+                document.getElementById('captureBtn').click();
+            }, 3000);
+        }
+    }, 5000);
+});
+
+// Annuler l'auto-capture si l'utilisateur interagit
+document.getElementById('captureBtn').addEventListener('click', function() {
+    if (autoCapture) {
+        clearTimeout(autoCapture);
+        autoCapture = null;
+    }
+});
+</script>
+{% endblock %}

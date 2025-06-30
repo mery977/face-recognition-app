@@ -1,0 +1,10 @@
+﻿__pycache__/
+*.pyc
+*.pyo
+.env
+uploads/
+logs/
+backups/
+.DS_Store
+node_modules/
+mongo_data/
