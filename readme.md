@@ -119,16 +119,7 @@ Le fichier `docker-compose.yml` configure :
 ### Endpoints disponibles
 
 #### Inscription d'utilisateur
-```http
-POST /api/register
-Content-Type: multipart/form-data
 
-{
-  "username": "john_doe",
-  "email": "john@example.com",
-  "photo": [fichier image]
-}
-```
 
 #### Connexion par reconnaissance faciale
 ```http
@@ -265,87 +256,8 @@ docker-compose logs -f web
 docker stats
 ```
 
-### Déploiement cloud
 
-**AWS / Azure / GCP** :
-- Utiliser des services managés (DocumentDB, Azure Cosmos DB)
-- Configurer l'auto-scaling
-- Implémenter le load balancing
 
-## 🤝 Contribution
 
-### Comment contribuer
 
-1. Fork le projet
-2. Créer une branche feature (`git checkout -b feature/AmazingFeature`)
-3. Commit les changements (`git commit -m 'Add AmazingFeature'`)
-4. Push vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrir une Pull Request
 
-### Standards de code
-
-- **Python** : PEP 8, type hints
-- **JavaScript** : ES6+, JSDoc
-- **HTML/CSS** : Standards W3C
-- **Git** : Conventional Commits
-
-## 📋 Roadmap
-
-### Version 1.1
-- [ ] Authentification multifactor (2FA)
-- [ ] Support multi-visages
-- [ ] API GraphQL
-
-### Version 1.2
-- [ ] Machine Learning amélioré
-- [ ] Application mobile
-- [ ] Intégration LDAP/Active Directory
-
-### Version 2.0
-- [ ] Reconnaissance vocale
-- [ ] Biométrie iris
-- [ ] Interface d'administration avancée
-
-## ⚠️ Limitations connues
-
-- **Éclairage** : Performance réduite en faible luminosité
-- **Angle** : Fonctionne mieux avec visage de face
-- **Navigateurs** : Certains navigateurs limitent l'accès caméra
-- **Performance** : Temps de traitement variable selon le hardware
-
-## 📄 Licence
-
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
-
-## 🆘 Support
-
-### Problèmes fréquents
-
-**Q: La caméra ne se lance pas**
-R: Vérifiez les permissions navigateur et que la caméra n'est pas utilisée par une autre application.
-
-**Q: Reconnaissance échoue systématiquement**
-R: Assurez-vous d'un bon éclairage et que le visage soit bien visible et de face.
-
-**Q: Erreur MongoDB**
-R: Vérifiez que le service MongoDB est démarré et accessible.
-
-### Contact
-
-- **Email** : support@face-recognition.com
-- **GitHub Issues** : [Ouvrir un ticket](https://github.com/votre-username/face-recognition-login/issues)
-- **Documentation** : [Wiki du projet](https://github.com/votre-username/face-recognition-login/wiki)
-
----
-
-## 🏆 Remerciements
-
-- **OpenCV** pour les outils de vision par ordinateur
-- **face_recognition** pour la librairie de reconnaissance faciale
-- **Flask** pour le framework web
-- **MongoDB** pour la base de données NoSQL
-- **Bootstrap** pour l'interface utilisateur
-
----
-
-*Développé avec ❤️ pour la sécurité et l'innovation*
